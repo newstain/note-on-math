@@ -195,7 +195,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{数值积分}
 
-\section{辛普森积分及复合辛普森积分}
+\section{一维数值积分}
+\subsection{辛普森积分及复合辛普森积分}
 \paragraph*{辛普森积分} 区间$[a, b]$有函数$f(x)$，求函数在此区间内的积分，可定义此区间的中点$\dfrac{a+b}{2}$及对应的函数值$f(\dfrac{a+b}{2})$，也就是对区间$[a, b]$进行二等分，这样，对应的数值积分为
 \begin{equation}
 	I = \int_{a}^{b} f(x) \, dx \approx \frac{h}{6}\left[ f(a) + f(\frac{a+b}{2}) + f(b) \right]	\label{eq:simpson-integer}
@@ -225,7 +226,7 @@
 	
 \end{example}
 
-\section{Cubic积分}
+\subsection{Cubic积分}
 在完成cubic插值后，我们可根据方程\eqref{eq:unkown_Sx}求出原函数的近似，区间$[x_i, x_{i+1}]$区间内有函数$f(x)$，此时，我们有
 \begin{equation}
 	\begin{aligned}
@@ -237,15 +238,52 @@
 		=& \frac{y_i + y_{i+1}}{2} h_i - \frac{M_{i} + M_{i+1}}{24} h_i^3
 	\end{aligned}
 \end{equation} 
-其中，$h_i = x_{i+1}-x_{i}$。区间$[a,\ b]$存在函数$f(x)$，将此区间进行$n$等分，每个小区间为$a = x_0 < x_1 < x_2 < \cdots < x_{n-1} < x_n = b $，求函数在此区域内的积分，如下
+其中，$h_i = x_{i+1}-x_{i}$。区间$[a,\ b]$存在函数$f(x)$，将此区间进行$n$等分，每个小区间
+为$a = x_0 < x_1 < x_2 < \cdots < x_{n-1} < x_n = b $，求函数在此区域内的积分，如下
 \begin{equation}
 	I = \sum_{i=0}^{n-1} I_{i} \approx \sum_{i=0}^{n-1} \frac{y_i + y_{i+1}}{2} h_i - \frac{M_{i} + M_{i+1}}{24} h_i^3
 \end{equation} 
 当为等距格点时，即$h = h_0 = h_1 =\cdots = h_{n-1}$时，上式化为
 \begin{equation}
-	I \approx \frac{y_0 + y_n + 2\sum_{i=1}^{n-1}y_i}{2} h - \frac{M_0 + M_n + 2\sum_{i=1}^{n-1}M_i}{24} h^3
+	I\approx\frac{y_0+y_n+2\sum_{i=1}^{n-1}y_i}{2}h-\frac{M_0+M_n+2\sum_{i=1}^{n-1}M_i}{24}h^3
+    \label{eq:cubic-int-equidistant}
 \end{equation} 
 
+\begin{example}{Cubic一维程序积分实现 —— 等间距格点}
+    \begin{lstlisting}
+        #include <iostream>
+        #include <cmath>
+        #include <Eigen/Sparse>
+        #include <Eigen/SparseLU>
+
+        double CubicInt(Eigen::VectorXd xvar, Eigen::VectorXd yvar, double xstep){
+            // 获取二阶导数
+            Eigen::VectorXd ypprime = getSectodDerivative(xvar, yvar, xstep);
+
+            int dim = xvar.rows();  // 获取离散坐标的数量
+            
+            double sumyvar = 0;
+            double sumypprime = 0;
+            
+            sumyvar = yvar[0] + y[dim - 1];             // 累加$y_0$和$y_n$
+            sumypprime = ypprime[0] + ypprime[dim - 1]; // 累加$M_0$和$M_n$
+            for(int i = 1; i < dim - 1; i++){
+                sumyvar += 2. * yvar(i);                // 累加 2 * y_i
+                sumypprime += 2. * ypprime(i);          // 累加 2 * M_i
+            }
+
+            double intvalue;
+            int value = sumyvar * xstep * 0.5 - sumypprime * pow(xstep, 3) / 24.;
+        }
+    \end{lstlisting}
+\end{example}
+
+\section{二维平面积分}
+对二维笛卡尔坐标系$x-y$平面的积分，可先对$x$坐标积分，在对$y$坐标积分，这样可得到原函数在
+二维平面上的积分。
+\subsection{Cubic二维平面积分}
+对于等间距的点，我们直接用式\eqref{eq:cubic-int-equidistant}来分别对$x$方向和$y$方向进行
+积分
 
 
 
@@ -257,17 +295,20 @@
 \chapter{数值微分}
 \section{五点数值微分公式}
 \subsection{二阶导微分公式}
-设$f(x)$为定义在区间$[a,b]$上的函数，给定$f(x)$在等距点$a \leqslant x_0 < x_1 < x_2 < x_3 < x_4 \leqslant b$，节点上函数值为$f(x_k)$，$(k=0, 1, 2, 3, 4)$，且满足$x_{k+1}-x_k=h$。在$[a,b]$上做$f(x)$的4次Lagrange插值函数，并将$x=x_0+th, t \in [0, 4], x_k = x_0+kh$带入，将方程两端对$t$求二次导，再分别把$t=0, 1, 2, 3, 4$带入，可得到$x_k$节点二阶导数的5点数值微分公式，如下：
+设$f(x)$为定义在区间$[a,b]$上的函数，给定$f(x)$在等距点$a \leqslant x_0 < x_1 < x_2 < x_3
+< x_4 \leqslant b$，节点上函数值为$f(x_k)$，$(k=0, 1, 2, 3, 4)$，且满足$x_{k+1}-x_k=h$。
+在$[a,b]$上做$f(x)$的4次Lagrange插值函数，并将$x=x_0+th, t \in [0, 4], x_k = x_0+kh$带入，
+将方程两端对$t$求二次导，再分别把$t=0, 1, 2, 3, 4$带入，可得到$x_k$节点二阶导数的5点数值
+微分公式，如下：
 \begin{equation}
 	\begin{aligned}
-		f^{\prime\prime}(x_0) =& \frac{1}{12h^2}[35f(x_0) - 104f(x_1) + 114f(x_2) - 56f(x_3) + 11f(x_4)]	\\
-		f^{\prime\prime}(x_1) =& \frac{1}{12h^2}[11f(x_0) -  20f(x_1) +   6f(x_2) +  4f(x_3) -   f(x_4)]	\\
-		f^{\prime\prime}(x_2) =& \frac{1}{12h^2}[ -f(x_0) +  16f(x_1) -  30f(x_2) + 16f(x_3) -   f(x_4)]	\\
-		f^{\prime\prime}(x_3) =& \frac{1}{12h^2}[ -f(x_0) +   4f(x_1) +   6f(x_2) - 20f(x_3) + 11f(x_4)]	\\
+		f^{\prime\prime}(x_0) =& \frac{1}{12h^2}[35f(x_0) - 104f(x_1) + 114f(x_2) - 56f(x_3) + 11f(x_4)] \\
+		f^{\prime\prime}(x_1) =& \frac{1}{12h^2}[11f(x_0) -  20f(x_1) +   6f(x_2) +  4f(x_3) -   f(x_4)] \\
+		f^{\prime\prime}(x_2) =& \frac{1}{12h^2}[ -f(x_0) +  16f(x_1) -  30f(x_2) + 16f(x_3) -   f(x_4)] \\
+		f^{\prime\prime}(x_3) =& \frac{1}{12h^2}[ -f(x_0) +   4f(x_1) +   6f(x_2) - 20f(x_3) + 11f(x_4)] \\
 		f^{\prime\prime}(x_4) =& \frac{1}{12h^2}[11f(x_0) -  56f(x_1) + 114f(x_2) -104f(x_3) + 35f(x_4)]
 	\end{aligned}
 \end{equation} 
-	
 
 
 
